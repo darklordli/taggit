@@ -26,9 +26,8 @@ gulp.task('exec', function() {
         .pipe(gulp.dest('logs'))
 });
 
-gulp.task('res-deploy', function() {
+gulp.task('res-deploy',['copy'], function() {
     var destFile = './dest/**/*';
-
     return gulp.src(destFile)
         .pipe(gulpSSH.dest('/home/upload/new-res/'))
 });

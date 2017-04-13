@@ -22,7 +22,7 @@
 1. 删除host 172.17.254.124 resourcenew.roobo.net 后访问
 [http://resourcenew.roobo.net/new-res/index_prod.html#!/](http://resourcenew.roobo.net/new-res/index_prod.html#!/)
 
-
+2
 ****  
 
 ## 新部署

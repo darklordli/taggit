@@ -54,7 +54,7 @@
             </div>
             <div class="high-search" v-show="showbox">
                 <i-form v-ref:form-item :model="formItem"
-                :rules="ruleCustom" :label-width="80" inline>
+                :rules="ruleCustom" :label-width="110" inline>
                     <Form-item label="资源名称：">
                         <i-input :value.sync="iname"
                         placeholder="请输入">
@@ -81,6 +81,7 @@
                     </Form-item>
                     <Form-item label="来源：" prop="source">
                         <i-select :model.sync="formItem.source" placeholder="请选择" style="width:166px">
+                            <i-option value="全部">全部</i-option>
                             <template v-for="item in sourceArr">
                                 <i-option :value="item">{{item}}</i-option>
                             </template>
@@ -94,40 +95,17 @@
                         <i-input :value.sync="formItem.userinfo.reviewer" placeholder="请输入"></i-input>
                     </Form-item>
                     <Form-item label="编辑时间：">
-                        <row>
-                            <i-col span="11">
-                                <Date-picker type="date" placeholder="开始时间" :value.sync="reviewed.begintime" style="width: 166px"></Date-picker>
-                            </i-col>
-                            <i-col span="2">
-                                <div class="center-line">
-                                    -
-                                </div>
-                            </i-col>
-                            <i-col span="11">
-                                <Date-picker type="date" placeholder="结束时间" :value.sync="reviewed.endtime" style="width: 166px"></Date-picker>
-                            </i-col>
-                        </row>
+                        <Date-picker type="daterange" placeholder="选择时间" :value.sync="reviewed.time" style="width: 188px"></Date-picker>
                     </Form-item>
                     <Form-item label="审核人：" prop="userinfo.editor">
                         <i-input :value.sync="formItem.userinfo.editor" placeholder="请输入"></i-input>
                     </Form-item>
                     <Form-item label="审核时间：">
-                        <row>
-                            <i-col span="11">
-                                <Date-picker type="date" placeholder="开始时间" :value.sync="editor.begintime" style="width: 166px"></Date-picker>
-                            </i-col>
-                            <i-col span="2">
-                                <div class="center-line">
-                                    -
-                                </div>
-                            </i-col>
-                            <i-col span="11">
-                                <Date-picker type="date" placeholder="结束时间" :value.sync="editor.endtime" style="width: 166px"></Date-picker>
-                            </i-col>
-                        </row>
+                        <Date-picker type="daterange" placeholder="选择时间" :value.sync="editor.time" style="width: 188px"></Date-picker>
                     </Form-item>
                     <Form-item label="审核状态：" prop="clevel">
                         <i-select :model.sync="formItem.clevel" placeholder="请选择" style="width:166px">
+                            <i-option value="全部">全部</i-option>
                             <template v-for="item in verifyStatus">
                                 <i-option :value="item.value | toInt ">{{item.text}}</i-option>
                             </template>
@@ -245,12 +223,10 @@ export default {
             lock: false,
             selectTableData:[],
             reviewed: {
-                begintime: '',
-                endtime: ''
+                time:[]
             },
             editor: {
-                begintime: '',
-                endtime: ''
+                time:[]
             },
             iname: '',
             iid: '',
@@ -286,7 +262,7 @@ export default {
                         return `<i-button type="ghost" shape="circle" :icon="playStatus[${index}].status" size="small" @click="playPause(${index})"></i-button>
                         <audio id="audio${index}" preload="none">
                         <source src="${row.content}" type="audio/mpeg"></audio>
-                        <a v-link="{name:'resouredetail', params:{id:${row.id}}, query: {action: 'detail'}}" target="_blank">${row.name}</a>`;
+                        <a v-link="{name:'resouredetail', params:{id:${row.id}}}" target="_blank">${row.name}</a>`;
                     }
                 },
                 {
@@ -392,11 +368,13 @@ export default {
                             verifyST = true;
                         }
 
-                        return `<a v-link="{name:'resouredetail', params:{id:${row.id}}, query: {action: 'edit'}}" target="_blank"><i-button :disabled="${editST}" type="primary"size="small">编辑</i-button></a>
-                        <a v-link="{name:'resouredetail', params:{id:${row.id}}, query: {action: 'verify'}}" target="_blank"><i-button :disabled="${verifyST}" type="primary" size="small">审核</i-button></a>
-                        <i-button :disabled="${upST}" type="warning" size="small"
-                        @click="upShelves(${index})">直接上架</i-button>
-                        <i-button :disabled="${removeST}" type="error" size="small" @click="removeItem(${index})">删除</i-button>
+                        return `<a v-link="{name:'resoureedit', params:{id:${row.id}}}" target="_blank">
+                                <i-button :disabled="${editST}" type="primary"size="small">编辑</i-button></a>
+                                <a v-link="{name:'resoureverify', params:{id:${row.id}}}" target="_blank">
+                                <i-button :disabled="${verifyST}" type="primary" size="small">审核</i-button></a>
+                                <i-button :disabled="${upST}" type="warning" size="small"
+                                @click="upShelves(${index})">直接上架</i-button>
+                                <i-button :disabled="${removeST}" type="error" size="small" @click="removeItem(${index})">删除</i-button>
                         `;
                     }
                 }
@@ -500,40 +478,38 @@ export default {
         },
         handleReset (name) {
             this.$refs[name].resetFields();
-            this.editor = {
-                begintime: '',
-                endtime: ''
-            },
-            this.reviewed = {
-                begintime: '',
-                endtime: ''
-            },
+            this.reviewed.time = [];
+            this.editor.time = [];
             this.ikeywords = '';
             this.iname = '';
             this.iid = '';
             this.tag.show = !this.tag.show
         },
         searchQuery(curr) { //模糊和精确搜索
-            if (this.reviewed.begintime !== '') {
-                this.formItem.userinfo.reviewed_at[0] = this.parseTime(this.reviewed.begintime);
-            }else {
-                this.formItem.userinfo.reviewed_at[0] = 0
+            if (this.formItem.source == '全部') {
+                this.formItem.source = null
             }
-            if (this.reviewed.endtime !== '') {
-                this.formItem.userinfo.reviewed_at[1] = this.parseTime(this.reviewed.endtime);
-            }else {
-                this.formItem.userinfo.reviewed_at[1] = 0
+            if (this.formItem.clevel == '全部') {
+                this.formItem.clevel = null
             }
-            if (this.editor.begintime !== '') {
-                this.formItem.userinfo.edited_at[0] = this.parseTime(this.editor.begintime);
-            }else {
-                this.formItem.userinfo.edited_at[0] = 0
+            if (this.reviewed.time.length !== 0) {
+                this.formItem.userinfo.reviewed_at = []
+                this.reviewed.time.forEach((val, idx, arr) => {
+                    this.formItem.userinfo.reviewed_at.$set(idx, this.parseTime(val))
+                })
+            }else{
+                this.formItem.userinfo.reviewed_at = null
             }
-            if (this.editor.endtime !== '') {
-                this.formItem.userinfo.edited_at[1] = this.parseTime(this.editor.endtime);
+
+            if (this.editor.time .length !== 0) {
+                this.formItem.userinfo.edited_at = []
+                this.editor.time.forEach((val, idx, arr) => {
+                    this.formItem.userinfo.edited_at.$set(idx, this.parseTime(val))
+                })
             }else {
-                this.formItem.userinfo.edited_at[1] = 0
+                this.formItem.userinfo.edited_at = null
             }
+
             this.pageCurr = 1;
             this.formItem.offset = curr;
             if (this.ikeywords !== '') {
@@ -565,7 +541,7 @@ export default {
                         this.$Loading.finish();
                         this.spinShow = false;
                         this.lock = true;
-                        this.searchData = res.data.resources;
+                        this.$set('searchData', res.data.resources);
                         this.pageTotal = res.data.total;
                         this.searchData.forEach((val, idx, arr) => {
                             this.playStatus.$set(idx, {
@@ -587,7 +563,8 @@ export default {
         },
         changePage(curr) {
             // 这里直接更改了模拟的数据，真实使用场景应该从服务端获取数据
-            this.searchQuery(curr);
+            let _offset = (curr-1)*50;
+            this.searchQuery(_offset);
             this.pageCurr = curr;
         },
         pageSizeChange(size){

@@ -262,6 +262,7 @@ util.disableclass = (tree,id) => {
     })
 };
 
+
 util.disabletreefuc = (tree)=>{
   // 先深拷贝一个
   let tmptree = util.deepCopy (tree,tmptree)
@@ -283,12 +284,30 @@ util.disabletree = (tree) => {
 
 //匹配每一个节点，将资源所在的分类选中,用id
 util.selectclass = (tree, id) => {
-    console.log(id)
-    tree.map((value) => {
+    tree.forEach((value) => {
       value.selected = value.id == id ? true : false;
-      return value
+      util.selectclass(value.children,id);
     })
 };
+
+//针对tree中的每一个节点,如果全量分类中某个跟节点与tags数组
+// 跟节点打勾，并且继续匹配子节点
+
+util.checkclass = (tree, arr) => {
+  tree.forEach((value)=>{
+    arr.forEach((arrvalue) =>{
+      if (value.id == arrvalue){
+        value.expand = true;
+        //如果节点是叶子节点
+        if (value.children.length == 0){
+          value.checked = true;
+        }
+        util.checkclass(value.children,arr)
+      }
+    })
+  })
+};
+
 
 //递归树，将资源所在的分类取消selected
 util.unselecttree = (tree) => {
@@ -312,6 +331,28 @@ util.uncheckedtree = (tree) => {
     })
 };
 
+//匹配每一个节点，将标签checked 设为true
+util.checkedtruetree = (tree) => {
+    tree.forEach((value) => {
+            value.checked = true;
+            if(value.children){
+              util.checkedtruetree(value.children)
+            }
+    })
+};
+
+
+//匹配每一个节点，将标签取消checked
+util.checkedfalsetree = (tree) => {
+    tree.forEach((value) => {
+            value.checked = false;
+            if(value.children){
+              util.checkedfalsetree(value.children)
+            }
+    })
+};
+
+
 //遍历树的每一个节点,返回 title 对应的 id数组
 util.getidarray = (tree, arr) => {
 
@@ -330,7 +371,7 @@ util.getidarray = (tree, arr) => {
 
 //对接口操作返回的统一处理
 util.tip = (res) => {
-    if (res.data.msg = "success") {
+    if (res.data.msg == "success") {
         iView.Notice.success({
             title: '操作成功'
         });

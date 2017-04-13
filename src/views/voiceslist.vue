@@ -48,6 +48,7 @@
                     </Form-item>
                     <Form-item label="分类：" prop="tagnew">
                         <i-select :model.sync="formItem.tagnew" placeholder="请选择" style="width:166px">
+                            <i-option value="全部">全部</i-option>
                             <template v-for="cats in catsArr">
                                 <i-option :value="cats.id | toInt">{{cats.title}}</i-option>
                             </template>
@@ -55,19 +56,22 @@
                     </Form-item>
                     <Form-item label="来源：" prop="source">
                         <i-select :model.sync="formItem.source" placeholder="请选择" style="width:166px">
+                            <i-option value="全部">全部</i-option>
                             <template v-for="item in sourceArr">
                                 <i-option :value="item">{{item}}</i-option>
                             </template>
                         </i-select>
                     </Form-item>
-                    <Form-item label="优先级：" prop="priority">
-                        <i-select :model.sync="formItem.priority" placeholder="请选择" style="width:166px">
-                            <i-option :value="0 | toInt">0</i-option>
-                            <i-option :value="1 | toInt">1</i-option>
+                    <Form-item label="优先级：">
+                        <i-select :model.sync="ipriority" placeholder="请选择" style="width:166px">
+                            <i-option value="全部">全部</i-option>
+                            <i-option value="0">0</i-option>
+                            <i-option value="1">1</i-option>
                         </i-select>
                     </Form-item>
-                    <Form-item label="资源状态：" prop="clevel">
+                    <Form-item label="资源状态：">
                         <i-select :model.sync="iclevel" placeholder="请选择" style="width:166px">
+                            <i-option value="全部">全部</i-option>
                             <i-option :value="5 | toInt">已上架</i-option>
                             <i-option :value="0 | toInt">已下架</i-option>
                             <i-option :value="4 | toInt">待上架</i-option>
@@ -77,22 +81,11 @@
                         <i-input :value.sync="formItem.userinfo.editor" placeholder="请输入"></i-input>
                     </Form-item>
                     <Form-item label="操作时间：">
-                        <row>
-                            <i-col span="11">
-                                <Date-picker type="date" placeholder="开始时间" :value.sync="editor.begintime" style="width: 166px"></Date-picker>
-                            </i-col>
-                            <i-col span="2">
-                                <div class="center-line">
-                                    -
-                                </div>
-                            </i-col>
-                            <i-col span="11">
-                                <Date-picker type="date" placeholder="结束时间" :value.sync="editor.endtime" style="width: 166px"></Date-picker>
-                            </i-col>
-                        </row>
+                        <Date-picker type="daterange" placeholder="选择时间" :value.sync="editor.time" style="width: 188px"></Date-picker>
                     </Form-item>
-                    <Form-item label="是否在APP显示：" prop="appshow">
-                        <i-select :model.sync="formItem.appshow" placeholder="请选择" style="width:90px">
+                    <Form-item label="是否在APP显示：">
+                        <i-select :model.sync="iappshow" placeholder="请选择" style="width:90px">
+                            <i-option value="全部">全部</i-option>
                             <i-option value="true">是</i-option>
                             <i-option value="false">否</i-option>
                         </i-select>
@@ -141,14 +134,15 @@ export default {
             pageCurr: 1,
             selectTableData: [],
             editor: {
-                begintime: '',
-                endtime: ''
+                time:[]
             },
             playStatus:[],
             ikeywords: '',
             iname: '',
             iid: '',
             iclevel: '',
+            iappshow: '',
+            ipriority: '',
             formItem: {
                 offset: 0,
                 count: 50,
@@ -346,14 +340,13 @@ export default {
         },
         handleReset (name) {
             this.$refs[name].resetFields();
-            this.editor = {
-                begintime: '',
-                endtime: ''
-            },
+            this.editor.time = [];
             this.ikeywords = '';
             this.iname = '';
             this.iid = '';
             this.iclevel = '';
+            this.iappshow = '';
+            this.ipriority = '';
         },
         showHighSearch() {
             this.showbox = !this.showbox;
@@ -362,16 +355,42 @@ export default {
             return Date.parse(new Date(time)) / 1000;
         },
         searchQuery(curr) { //搜索
-            if (this.editor.begintime !== '') {
-                this.formItem.userinfo.edited_at[0] = this.parseTime(this.editor.begintime);
-            }else {
-                this.formItem.userinfo.edited_at[0] = 0
+            if (this.formItem.tagnew == '全部') {
+                this.formItem.tagnew = null
             }
-            if (this.editor.endtime !== '') {
-                this.formItem.userinfo.edited_at[1] = this.parseTime(this.editor.endtime);
-            }else {
-                this.formItem.userinfo.edited_at[1] = 0
+            if (this.formItem.source == '全部') {
+                this.formItem.source = null
             }
+
+            if (this.ipriority == '0') {
+                this.formItem.priority = 0
+            }else if (this.ipriority == '1') {
+                this.formItem.priority = 1
+            }else if (this.ipriority == '全部') {
+                this.formItem.priority = null
+            }else{
+                this.formItem.priority = null
+            }
+
+            if (this.iappshow == 'true') {
+                this.formItem.appshow = true
+            }else if (this.iappshow == 'false') {
+                this.formItem.appshow = false
+            }else if (this.iappshow == '全部') {
+                this.formItem.appshow = null
+            }else {
+                this.formItem.appshow = null
+            }
+
+            if (this.editor.time .length !== 0) {
+                this.formItem.userinfo.edited_at = []
+                this.editor.time.forEach((val, idx, arr) => {
+                    this.formItem.userinfo.edited_at.$set(idx, this.parseTime(val))
+                })
+            }else {
+                this.formItem.userinfo.edited_at = null
+            }
+
             this.pageCurr=1;
             this.formItem.offset = curr;
             if (this.ikeywords !== '') {
@@ -392,7 +411,9 @@ export default {
             if (this.iclevel !== '') {
                 this.formItem.clevel.splice(0, this.formItem.clevel.length);
                 this.formItem.clevel[0] = this.iclevel;
-                console.log(this.formItem.clevel);
+                if (this.iclevel == '全部') {
+                    this.formItem.clevel = [5, 4, 0]
+                }
             }else{
                 this.formItem.clevel = [5, 4, 0]
             }
@@ -408,7 +429,7 @@ export default {
                     if (res.result == 0) {
                         this.$Loading.finish();
                         this.spinShow = false;
-                        this.searchData = res.data.resources;
+                        this.$set('searchData', res.data.resources);
                         this.pageTotal = res.data.total;
                         this.searchData.forEach((val, idx, arr ) => {
                             this.playStatus.$set(idx, {
@@ -430,7 +451,8 @@ export default {
         },
         changePage(curr) {
             // 这里直接更改了模拟的数据，真实使用场景应该从服务端获取数据
-            this.searchQuery(curr);
+            let _offset = (curr-1)*50;
+            this.searchQuery(_offset);
             this.pageCurr = curr;
         },
         pageSizeChange(size){
@@ -576,7 +598,6 @@ export default {
         batchNo(num) { //批量不处理
             this.batchUpShelves(num)
         }
-
 
 
     },

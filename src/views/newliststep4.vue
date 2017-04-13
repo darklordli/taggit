@@ -19,7 +19,7 @@
         </Row>
         <div class="file-upload">
             <div>
-                <Upload :format="['txt','csv']" :on-format-error="handleFormatError" :max-size="10240" :on-exceeded-size="handleMaxSize" :on-success="handleSuccess" multiple action="//jsonplaceholder.typicode.com/posts/">
+                <Upload :format="['xls', 'xlsx', 'csv']" :on-format-error="handleFormatError" :max-size="10240" :on-exceeded-size="handleMaxSize" :on-success="handleSuccess" multiple :action="upUrl">
                     <i-button type="primary" icon="ios-cloud-upload-outline">批量导入信息</i-button>
                 </Upload>
             </div>
@@ -81,6 +81,7 @@ export default {
             selectData: [],
             globalId: 0,
             pageTotal: 0,
+            upUrl:"",
             //专辑信息
             songlistdata: {
                 name: '',
@@ -152,6 +153,7 @@ export default {
     },
     ready() {
         this.getSongInfo(0);
+        this.upUrl = config.ajaxUrl + '/fileinput';
     },
     methods: {
         showEdit() {
@@ -319,8 +321,7 @@ export default {
             });
         },
         handleSuccess(res, file) { //上传成功钩子
-
-
+            this.$Notice.success({title:"上传成功!"});
         },
 
 

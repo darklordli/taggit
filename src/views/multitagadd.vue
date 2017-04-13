@@ -29,19 +29,24 @@
               </Menu-item>
           </Menu>
 
-          <p class="num_wrapper">共选择 {{tagsData.length}} 条记录，
+          <p class="num_wrapper">共选择 {{tagsData.length}} 条资源，
             所在分类:{{classname}}</p>
 
           <Card class="tagwrapper">
-            <p slot="title">标签</p>
-            <template v-for="item in taglist">
-              <Tag type="border" color="blue">{{item.title}}</Tag>
+            <p slot="title"><b>{{classname}}</b> 分类的标签：</p>
+            <template v-for="item in taglist" v-ref:tagtree>
+
+              <!-- 标签 点击全部勾选这个标签组内的所有标签-->
+              <a type="border"
+              class ="taggrouplink"
+              @click.prevent.stop="checkalltags(item)">
+              {{item.title}}
+              </a>
 
                 <Card class="cf">
                   <!-- 标签,每一个标签都是一棵树-->
                   <Tree :data="item.children"
-                  show-checkbox
-                  @on-check-change="savetags">
+                  show-checkbox>
                   </Tree>
                 </card>
 
@@ -53,14 +58,15 @@
             icon="ios-compose"
             size="large"
             v-on:click.stop.prevent="tosave()"
-            >保存</i-button>
+            >批量保存</i-button>
 
             <i-button type="success"
             icon="checkmark-round"
             size="large"
             v-on:click.stop.prevent="tosubmit()"
-            >提交</i-button>
+            >批量提交</i-button>
           </p>
+
          </div>
       </div>
 </template>
@@ -77,10 +83,10 @@ import { getTags } from '../store/getters'
               logininfo:"",
               // 资源共有的分类id
               classid:null,
-              // 资源共有的分类的树形结构
-              classname:null,
               //某分类下的标签组和标签数据
               taglist:[],
+              //临时存放新打的标签数据，key 为标签组ID，value为标签id的数组
+              tagnew:{},
               //临时分类和标签数据
               tmptaglist:{
                     "id":[],
@@ -96,7 +102,10 @@ import { getTags } from '../store/getters'
                       "editor":"",
                       "editor_email":""
                     }
-              }
+              },
+              classspinShow:true,
+              tagsspinShow:true,
+              classname:""
             }
         },
         ready(){
@@ -121,11 +130,9 @@ import { getTags } from '../store/getters'
               this.tmptaglist.data[0].resources.push(value.id)
             })
           },
-
           // 获取第一个资源的分类
           getclass(){
             let url= `/airesources/${this.tagsData[0].id}`;
-            console.log(url);
             util.ajax({
                 method: 'GET',
                 url: util.getUrl(url)
@@ -160,13 +167,10 @@ import { getTags } from '../store/getters'
                       console.error(error);
                   });
           },
-
-          //获取一个标签组内已经选中的标签
-          savetags(nodearr){
-              console.log(nodearr);
-              nodearr.forEach((value)=>{
-                this.tmptaglist.id.push(value.id)
-              })
+          //全部勾选某标签组内的所有标签
+          checkalltags(item){
+            //当前标签组下所有的标签的checked置true
+            util.checkedtruetree(item.children);
           },
 
           //保存修改
@@ -182,6 +186,31 @@ import { getTags } from '../store/getters'
           },
 
           tosend(){
+            // 不管是否存在改变，都把目前已经打的标签id放在 this.tagnew 对象中，
+            //然后将tagnew里的各个tag遍历进this.changedata
+            let tagsitem = this.$refs.tagtree;
+            tagsitem.forEach((value,index) =>{
+                this.tagnew[index]=[];
+                //每个标签组依次获取已经checked标签
+                let tagsarr=value.$children[0].getCheckedNodes();
+                tagsarr.forEach((tagsvalue)=>{
+                  if (tagsvalue.id){
+                    this.tagnew[index].push(tagsvalue.id)
+                  }
+                  else{
+                    this.tagnew[index].push(tagsvalue.tagId)
+                  }
+                })
+            })
+
+            //将tagnew里的各个tag遍历进this.tmptaglist.id
+              let item = [];
+              for (item in this.tagnew){
+                this.tagnew[item].forEach((value)=>{
+                   this.tmptaglist.id.push(value);
+                })
+              }
+
             this.tmptaglist.userinfo.editor = this.logininfo.loginName;
             this.tmptaglist.userinfo.editor_email = this.logininfo.email;
 

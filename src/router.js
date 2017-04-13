@@ -81,11 +81,25 @@ const routers = {
             require(['./views/voicesupload'], resolve)
         }
     },
-    //资源详情-(包括显示，编辑，审核)
+    //单个资源详情查看
     '/resouredetail/:id': {
         name: 'resouredetail',
         component(resolve) {
             require(['./views/resouredetail'], resolve)
+        }
+    },
+    //单个资源详情编辑
+    '/resoureedit/:id': {
+        name: 'resoureedit',
+        component(resolve) {
+            require(['./views/resoureedit'], resolve)
+        }
+    },
+    //单个资源详情编辑
+    '/resoureverify/:id': {
+        name: 'resoureverify',
+        component(resolve) {
+            require(['./views/resoureverify'], resolve)
         }
     },
     //音频资源列表

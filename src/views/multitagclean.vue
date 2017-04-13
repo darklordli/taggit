@@ -9,7 +9,6 @@
   .cf{display:inline-block;zoom:1;width: 100%}
   .cf:after{content:".";display:block;clear:both;visibility:hidden;line-height:0;height:0}
   html[xmlns] .clearfix{display:block}
-
 </style>
 <template>
     <div class="layout-header"></div>
@@ -29,37 +28,54 @@
               </Menu-item>
           </Menu>
 
-          <p class="num_wrapper">共选择 {{tagsData.length}} 条记录，请选择清除内容</p>
+          <p class="num_wrapper">共选择 {{tagsData.length}} 条资源，请选择需要清除的标签，分类不清除</p>
 
           <Card class="classwrapper cf">
               <p slot="title">分类</p>
+
               <!-- 分类数据 -->
               <Tree :data="classifylist"
-              @on-select-change="gettagnode">
+              @on-select-change="gettaglist">
               </Tree>
+
           </card>
 
           <Card class="tagwrapper">
-            <p slot="title">标签</p>
-            <template v-for="item in taglist">
-              <Tag type="border" color="blue">{{item.title}}</Tag>
+            <p slot="title"><b>{{classname}}</b> 分类的标签：</p>
+
+            <template v-for="item in taglist" v-ref:tagtree>
+              <!-- 标签 点击全部勾选这个标签组内的所有标签-->
+              <a type="border"
+              class ="taggrouplink"
+              @click.prevent.stop="checkalltags(item)">
+              {{item.title}}
+              </a>
+
                 <Card class="cf">
-                  <!-- 标签,每一个标签都是一棵树-->
+
                   <Tree :data="item.children"
-                  show-checkbox
-                  @on-check-change="savetags">
+                    show-checkbox>
                   </Tree>
+
+                  <!--加载中 -->
+                  <Spin size="large" v-if="tagsspinShow"></Spin>
                 </card>
 
             </template>
           </card>
 
           <p class="btn_wrapper">
-          <i-button type="error"
-          icon="android-delete"
-          size="large"
-          v-on:click.stop.prevent="toclean()"
-          >清除</i-button>
+            <i-button type="warning"
+            icon="ios-compose"
+            size="large"
+            v-on:click.stop.prevent="tosave()"
+            >批量保存</i-button>
+
+            <i-button type="success"
+            icon="checkmark-round"
+            size="large"
+            v-on:click.stop.prevent="tosubmit()"
+            >批量提交</i-button>
           </p>
 
          </div>
@@ -74,6 +90,7 @@ import { getTags } from '../store/getters'
     export default {
         data() {
             return {
+              // tagsData:[579017,579018],
               //登陆信息
               logininfo:"",
               // 全量分类数据
@@ -82,6 +99,8 @@ import { getTags } from '../store/getters'
               classifylist:[],
               //某分类下的标签组和标签数据
               taglist:[],
+              //临时存放新打的标签数据，key 为标签组ID，value为标签id的数组
+              tagnew:{},
               //临时分类和标签数据
               tmptaglist:{
                     "id":[],
@@ -97,14 +116,13 @@ import { getTags } from '../store/getters'
                       "editor":"",
                       "editor_email":""
                     }
-              }
+              },
             }
         },
         ready(){
           this.getlogininfo();
           this.endids();
           this.getclass();
-          this.getclasslist();
         },
         vuex: {
             getters: {
@@ -124,23 +142,20 @@ import { getTags } from '../store/getters'
             })
           },
 
-          // 获取第一个资源的分类
+          // 获取第一个资源的大分类和子分类
           getclass(){
-            let url= `/airesources/${this.tagsData[0].id}`;
-            console.log(url);
+            let url= `/airesources/${this.tagsData[0].id}?tags=1&userinfo=1&tagnew=1&tagtree=1`;
             util.ajax({
                 method: 'GET',
                 url: util.getUrl(url)
                 })
                 .then((res) => {
-                  this.classid = res.data.data.catearr.id;
-                  console.log(this.classid);
+                  this.getclasslist();
                 })
                 .catch(function(error) {
                     console.error(error);
                 });
           },
-
           //获取全量分类数据
           getclasslist(){
             let json={
@@ -155,17 +170,9 @@ import { getTags } from '../store/getters'
                 data:json
                 })
                 .then((res) => {
-                    console.log('分类');
                     this.classifylist = res.data.data.children;
-
-                    //匹配每一个节点，将资源所在的分类选中,用id匹配
-                    util.selectclass(this.classifylist,this.classid);
-
-                    //获取资源所在的分类的全量标签
-                    this.gettaglist(this.classid);
-
-                    //展开子分类
-                    util.expandtree(this.classifylist);
+                    //隐藏spin
+                    this.classspinShow = false;
 
                 })
                 .catch(function(error) {
@@ -173,17 +180,13 @@ import { getTags } from '../store/getters'
                 });
           },
 
-          //给批量资源切换分类
-          gettagnode(node){
-            this.gettaglist(node[0].id);
-          },
 
-          //获取资源所在分类的标签数据
+          //获取分类的标签数据
           // 参数为为分类id
-          gettaglist(id){
+          gettaglist(nodearr){
             let json={
                   "appId":"",
-                  "id":id,
+                  "id":nodearr[0].id,
               };
               util.ajax({
                   method: 'POST',
@@ -192,26 +195,37 @@ import { getTags } from '../store/getters'
                   })
                   .then((res) => {
                       this.taglist = res.data.data.children;
-                      console.log(this.taglist)
+                      this.classname = res.data.data.title;
+                      this.tagnew = {};
+                      //隐藏spin
+                      this.tagsspinShow = false;
                   })
                   .catch((error) => {
                       console.error(error);
                   });
           },
 
-          //获取一个标签组内已经选中的标签
-          savetags(nodearr){
-              console.log(nodearr);
-              nodearr.forEach((value)=>{
-                this.tmptaglist.id.push(value.id);
-              })
+          // //获取一个标签组内已经选中的标签
+          // savetags(nodearr){
+          //     console.log(nodearr);
+          //     nodearr.forEach((value)=>{
+          //       this.tmptaglist.id.push(value.id);
+          //     })
+          // },
+
+          //全部勾选某标签组内的所有标签
+          checkalltags(item){
+            //当前标签组下所有的标签的checked置true
+            util.checkedtruetree(item.children);
           },
-          //清除逻辑
-          toclean(){
+
+          //全部勾选某标签组内的所有标签
+          tosave(){
+            this.tmptaglist.clevel=2;
             this.$Modal.confirm({
-                title: '确认批量清除标签？',
+                title: '确认批量清除这些标签？',
                 onOk: () => {
-                    this.tosubmit();
+                    this.tosend();
                 },
                 onCancel: () => {
                     return false;
@@ -219,13 +233,46 @@ import { getTags } from '../store/getters'
             });
           },
 
-          //提交修改
           tosubmit(){
             this.tmptaglist.clevel=3;
-            this.tosend();
+            this.$Modal.confirm({
+                title: '确认批量清除这些标签？',
+                onOk: () => {
+                    this.tosend();
+                },
+                onCancel: () => {
+                    return false;
+                }
+            });
           },
 
+
+
           tosend(){
+            // 不管是否存在改变，都把目前已经打的标签id放在 this.tagnew 对象中，
+            //然后将tagnew里的各个tag遍历进this.changedata
+            let tagsitem = this.$refs.tagtree;
+            tagsitem.forEach((value,index) =>{
+                this.tagnew[index]=[];
+                //每个标签组依次获取已经checked标签
+                let tagsarr=value.$children[0].getCheckedNodes();
+                tagsarr.forEach((tagsvalue)=>{
+                  if (tagsvalue.id){
+                    this.tagnew[index].push(tagsvalue.id)
+                  }
+                  else{
+                    this.tagnew[index].push(tagsvalue.tagId)
+                  }
+                })
+            })
+
+            //将tagnew里的各个tag遍历进this.tmptaglist.id
+              let item = [];
+              for (item in this.tagnew){
+                this.tagnew[item].forEach((value)=>{
+                   this.tmptaglist.id.push(value);
+                })
+              }
 
             this.tmptaglist.userinfo.editor = this.logininfo.loginName;
             this.tmptaglist.userinfo.editor_email = this.logininfo.email;
@@ -237,7 +284,17 @@ import { getTags } from '../store/getters'
                 data:this.tmptaglist
                 })
                 .then((res) => {
-                    util.tip(res);
+                    if (res.data.result == -4){
+                      this.$Notice.error({
+                          title: '操作失败',
+                          desc: "您选择的标签均没有与资源有关联～"
+                      });
+                      return false;
+                    }
+                    else{
+                      util.tip(res);
+                    }
+
                 })
                 .catch(function(error) {
                     console.error(error);

@@ -48,6 +48,6 @@ router.afterEach(() => {
 });
 App.store = store;
 router.redirect({
-    '*': "/index"
+    '*': "/editoraudit"
 });
 router.start(App, '#app');

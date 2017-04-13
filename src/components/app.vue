@@ -122,7 +122,7 @@ import util from '../libs/util';
             };
         },
         ready() {
-          this.writecookie();
+          //this.writecookie();
           this.getlogininfo();
         },
         beforeDestroy() {

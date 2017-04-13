@@ -12,7 +12,7 @@ if (config.env === "development") {
     config.access_token = "acd626b0dacdfb17bb214e33eb75e172";
 
 } else if (config.env === "production") {
-    config.ajaxUrl = "//resourcenew-inner.roo.bo";
+    config.ajaxUrl = "";
     config.loginurl = "http://ecp.roobo.net/";
     config.appId = "resources";
     config.access_token = "acd626b0dacdfb17bb214e33eb75e172";

@@ -4,8 +4,7 @@ const webpack = require('webpack');
 module.exports = {
     // 入口
     entry: {
-        main: './src/main',
-        vendors: ['vue', 'vue-router', 'axios', 'vuex', 'echarts', 'js-cookie', 'clipboard']
+        main: './src/main'
     },
     // 输出
     output: {
